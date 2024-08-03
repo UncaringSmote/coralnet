@@ -3,3 +3,4 @@ requests
 pandas
 dataclasses-json
 retry
+logdecorator

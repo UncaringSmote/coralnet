@@ -23,4 +23,5 @@ class Data:
 @dataclass_json
 @dataclass
 class CoralnetLoadModel:
-    data:[Data]
+    data:List[Data]
+
