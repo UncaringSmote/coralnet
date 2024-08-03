@@ -73,7 +73,7 @@ def get_file_list(dropbox_folder: str) -> List[any]:
     file_list_result = dbx.files_list_folder(dropbox_folder)
     file_list.extend(file_list_result.entries)
     while file_list_result.has_more:  # Loops through to retrieve the rest of the images
-        file_list_result = get_more_files(dbx, file_list, file_list_result)
+        file_list_result = get_more_files(file_list, file_list_result)
     return file_list
 
 
