@@ -94,7 +94,7 @@ def deploy_coralnet_api(state_machine:StateMachine, files_per_load = 100):
 
     # This is the loop that is used to send the many requests to the API.  It will continue until k gets large enough that it will exceed the number of images in the JSON file.
     for k in range(state.lastK,state.maxK,files_per_load):
-        logger.info(f'K = {k}')
+        logger.info(f'K = {k} of {state.maxK}')
         state.lastk = k
         state_machine.update_state(state)
         # Pulls out the 100 images

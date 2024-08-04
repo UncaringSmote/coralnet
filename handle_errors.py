@@ -66,7 +66,7 @@ def handle_errors(state_machine: StateMachine, files_per_load= 100):
         for error in errors:
             logger.error(f"{error}")
     else:
-        logger.error("A - OKAY")
+        logger.info("A - OKAY")
         state.error_checking_completed = True
         state_machine.update_state(state)
 
