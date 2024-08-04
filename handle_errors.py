@@ -34,18 +34,16 @@ def handle_errors(state_machine: StateMachine, files_per_load= 100):
         state_machine.update_state(state)
 
     file_list = []
-    id_index_mapping = {}
-    for i,error in enumerate(errors):
+    for error in errors:
         file_name = get_file_name(error)
         file_list.append(FileName(file_name))
-        id_index_mapping[file_name] = i
 
     model = generate_model_json(file_list, state_machine.dropbox_path)
 
     successes_combined,errors_combined = [],[]
 
     for k in range(0,len(errors),files_per_load):
-        logger.info(f'K = {k}')
+        logger.info(f'K = {k} of {len(errors)}')
 
         batch_to_load = CoralnetLoadModel(model.data[k:k+files_per_load])
         post_response = send_coralnet_post(batch_to_load.to_dict())
