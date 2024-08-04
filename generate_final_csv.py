@@ -67,3 +67,5 @@ def generate_final_csv(state_machine: StateMachine):
     # Outputs the csv
     file_path = generate_save_location(state_machine.current_id,"annotated.csv")
     output.to_csv(file_path, index=False)
+    state.csv_generated=True
+    state_machine.update_state(state)
