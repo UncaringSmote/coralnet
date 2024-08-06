@@ -37,7 +37,7 @@ def send_coralnet_get_status(url, timeout =120):
 
 
 @log_on_end(logging.INFO, "{result[1]}")
-def decode_status(response):
+def decode_status(response,k):
     curr_status = json.loads(response.content)
     message = None
 
@@ -49,15 +49,15 @@ def decode_status(response):
         status = attributes['status']
         ids = curr_status['data'][0]['id'].split(",")
         ids = ''.join(str(_) for _ in ids)
-        message = f"Status: {status} , Successes: {s} , Failures: {f} , Total {t} , Ids: {ids}"
+        message = f"K={k}, Status: {status} , Successes: {s} , Failures: {f} , Total {t} , Ids: {ids}"
 
     return curr_status, message
 
 
-def get_result(url_location):
+def get_result(url_location,k):
     while True:  # This pings CoralNet every 60 seconds to check the status of the job
         get_response = send_coralnet_get_status(url='https://coralnet.ucsd.edu' + url_location)
-        status , message = decode_status(get_response)
+        status , message = decode_status(get_response,k)
         if message:
             time.sleep(60)
         else:
@@ -101,7 +101,7 @@ def deploy_coralnet_api(state_machine:StateMachine, files_per_load = 100):
         batch_to_load = CoralnetLoadModel(model.data[k:k+files_per_load])
         post_response = send_coralnet_post(batch_to_load.to_dict())
         time.sleep(60)  # Waits 60 seconds before attempting to retrieve results from the post request
-        result = get_result(post_response.headers['Location'])
+        result = get_result(post_response.headers['Location'],k)
         successes,errors = seperate_errors(result)
 
         output['successes'].extend(successes)
