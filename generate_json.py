@@ -7,6 +7,7 @@ import dropbox
 from dropbox import Dropbox
 from dropbox.sharing import PathLinkMetadata
 from logdecorator import log_on_start, log_on_end
+from retry import retry
 
 from config import dropbox_token
 from coralnet_load_model import Point, Attributes, Data, CoralnetLoadModel
@@ -55,11 +56,15 @@ def generate_model_json(file_list: List[any], dropbox_folder: str) -> CoralnetLo
     increments = [(len(file_list) // 10) * i for i in range(1, 10)]
     for i, entry in enumerate(file_list):
         pathway = f'{dropbox_folder}/' + entry.name
-        tmp_name = dbx.sharing_create_shared_link(path=pathway, short_url=False, pending_upload=None)
+        tmp_name = create_shared_link(pathway)
         data.append(generate_data_json(tmp_name))
         if i in increments:
             logger.info(f"Percent Complete: {((increments.index(i) + 1) * 10)}")
     return CoralnetLoadModel(data)
+
+@retry(delay=10)
+def create_shared_link(pathway):
+    return dbx.sharing_create_shared_link(path=pathway, short_url=False, pending_upload=None)
 
 
 @log_on_start(logging.INFO, "+ Started getting File List")
