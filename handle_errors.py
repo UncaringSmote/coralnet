@@ -48,7 +48,7 @@ def handle_errors(state_machine: StateMachine, files_per_load= 100):
         batch_to_load = CoralnetLoadModel(model.data[k:k+files_per_load])
         post_response = send_coralnet_post(batch_to_load.to_dict())
         time.sleep(60)  # Waits 60 seconds before attempting to retrieve results from the post request
-        result = get_result(post_response.headers['Location'])
+        result = get_result(post_response.headers['Location'],k)
         successes,errors = seperate_errors(result)
 
         successes_combined.extend(successes)
