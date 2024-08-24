@@ -1,7 +1,7 @@
 import os
 import sys
 
-from config import dropbox_paths
+from config import dropbox_paths, SITE
 from deploy_coralnet_api import deploy_coralnet_api
 from generate_final_csv import generate_final_csv
 from generate_json import generate_json
@@ -19,6 +19,8 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout),
     ])
 for path in dropbox_paths:
+    if SITE not in path:
+        raise Exception("SITE MAY NOT MATCH CORALNET ALGO")
     state_machine = StateMachine(path)
     make_output_directory(state_machine.current_id)
     generate_json(state_machine)
