@@ -9,7 +9,7 @@ from dataclasses_json import dataclass_json
 @dataclass
 class State:
     dropbox_path: str
-    lastK: int = 0
+    deploy_started: bool = False
     maxK: int = -1
     deploy_completed: bool = False
     error_checking_completed: bool = False
@@ -40,7 +40,7 @@ class StateMachine:
 
     def _save_states(self):
         with open(f'states.json', 'w') as outfile:
-            json.dump(self.state_data.to_dict(), outfile)
+            json.dump(self.state_data.to_dict(), outfile,indent=2)
 
     def get_state(self) -> State:
         return self.state_data.states[self.current_id]

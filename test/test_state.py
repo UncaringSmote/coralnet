@@ -7,8 +7,8 @@ class Test(TestCase):
     def test_state(self):
         sm = StateMachine("test")
         current = sm.get_state()
-        current.lastK=10
+        current.deploy_started=True
         sm.update_state(current)
         sm2 = StateMachine("test")
-        assert sm2.get_state().lastK==10
+        assert sm2.get_state().deploy_started==True
 

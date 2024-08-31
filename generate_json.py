@@ -9,7 +9,7 @@ from dropbox.sharing import PathLinkMetadata
 from logdecorator import log_on_start, log_on_end
 from retry import retry
 
-from config import dropbox_token
+from config import dropbox_token, dropbox_app_key, dropbox_app_secret
 from coralnet_load_model import Point, Attributes, Data, CoralnetLoadModel
 from state import StateMachine
 from utils import generate_save_location
@@ -17,7 +17,7 @@ from utils import generate_save_location
 requests_logger = logging.getLogger('dropbox')
 requests_logger.setLevel(logging.WARN)#done to hide the dropbox spam messages
 logger = logging.getLogger(__name__)
-dbx = dropbox.Dropbox(dropbox_token)
+dbx = dropbox.Dropbox(app_key=dropbox_app_key,app_secret=dropbox_app_secret,oauth2_refresh_token=dropbox_token)
 dbx.users_get_current_account()
 
 def get_points_array(r_min=450, r_max=2550, c_min=600, c_max=3400, r_divs=5, c_divs=6) -> List[Point]:
@@ -61,6 +61,25 @@ def generate_model_json(file_list: List[any], dropbox_folder: str) -> CoralnetLo
         if i in increments:
             logger.info(f"Percent Complete: {((increments.index(i) + 1) * 10)}")
     return CoralnetLoadModel(data)
+# def generate_model_json(file_list: List[any], dropbox_folder: str) -> CoralnetLoadModel:
+#     data = [0]*len(file_list)
+#     increments = [(len(file_list) // 10) * i for i in range(1, 10)]
+#     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+#         # Start the load operations and mark each future with its id
+#         future_to_url = {executor.submit(create_shared_link, f'{dropbox_folder}/' + entry.name): i for i,entry in enumerate(file_list)}
+#         for future in concurrent.futures.as_completed(future_to_url):
+#             i = future_to_url[future]
+#             try:
+#                 tmp_name = future.result()
+#                 data[i]=generate_data_json(tmp_name)
+#                 if i in increments:
+#                     logger.info(f"Percent Complete: {((increments.index(i) + 1) * 10)}")
+#             except Exception as exc:
+#
+#                 logger.error(f"ISSUE GETTING SHARED LINKS{exc}")
+#                 exit()
+#
+#     return CoralnetLoadModel(data)
 
 @retry(delay=10)
 def create_shared_link(pathway):

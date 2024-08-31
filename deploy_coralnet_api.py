@@ -1,3 +1,4 @@
+import concurrent.futures
 import json
 import logging
 import os
@@ -87,30 +88,61 @@ def deploy_coralnet_api(state_machine:StateMachine, files_per_load = 100):
 
     output = {'successes':[],
                'errors':[]}
+    all_batches = []
+    batches_loaded = {}
+    for i,k in enumerate(range(0, state.maxK, files_per_load)):
+        all_batches.append( CoralnetLoadModel(model.data[k:k + files_per_load]))
+        batches_loaded[str(i)]=False
+
     deploy_results_file_location = generate_save_location(state_machine.current_id,"deploy_results.json")
-    if state.lastK != 0 :
-        with open(deploy_results_file_location, 'r') as outfile:
-             output = json.load(outfile)
-
-    # This is the loop that is used to send the many requests to the API.  It will continue until k gets large enough that it will exceed the number of images in the JSON file.
-    for k in range(state.lastK,state.maxK,files_per_load):
-        logger.info(f'K = {k} of {state.maxK}')
-        state.lastK=k
-        state_machine.update_state(state)
-        # Pulls out the 100 images
-        batch_to_load = CoralnetLoadModel(model.data[k:k+files_per_load])
-        post_response = send_coralnet_post(batch_to_load.to_dict())
-        time.sleep(60)  # Waits 60 seconds before attempting to retrieve results from the post request
-        result = get_result(post_response.headers['Location'],k)
-        successes,errors = seperate_errors(result)
-
-        output['successes'].extend(successes)
-        output['errors'].extend(errors)
+    batches_loaded_file_location = generate_save_location(state_machine.current_id, "batches_loaded.json")
+    if not state.deploy_started:
         with open(deploy_results_file_location, 'w') as outfile:
             json.dump(output, outfile)
+        with open(batches_loaded_file_location, 'w') as outfile:
+            json.dump(batches_loaded, outfile)
+        state.deploy_started=True
+        state_machine.update_state(state)
+    else:
+        with open(deploy_results_file_location, 'r') as outfile:
+            output = json.load(outfile)
+        with open(batches_loaded_file_location, 'r') as outfile:
+            batches_loaded = json.load(outfile)
+
+    batches_to_load = []
+    for key,value in batches_loaded.items():
+        if not value:
+            batches_to_load.append((key,all_batches[int(key)]))
+
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=7) as executor:
+        future_response = {executor.submit(post_and_get_result,batch_to_load) for batch_to_load in batches_to_load}
+        for future in concurrent.futures.as_completed(future_response):
+            try:
+                errors, successes,k = future.result()
+            except Exception as exc:
+                logger.error(f"PANIC SOMETHING HAPPENED IN THE THREADS:{exc}")
+            else:
+                logger.info(f"{k} completed")
+                output['successes'].extend(successes)
+                output['errors'].extend(errors)
+                batches_loaded[k]=True
+                with open(deploy_results_file_location, 'w') as outfile:
+                    json.dump(output, outfile)
+                with open(batches_loaded_file_location, 'w') as outfile:
+                    json.dump(batches_loaded, outfile)
 
 
     state.deploy_completed = True
     state.deploy_result_file = deploy_results_file_location
     state_machine.update_state(state)
+
+
+def post_and_get_result(batch_to_load):
+    k,batch = batch_to_load
+    post_response = send_coralnet_post(batch.to_dict())
+    time.sleep(60)  # Waits 60 seconds before attempting to retrieve results from the post request
+    result = get_result(post_response.headers['Location'], k)
+    successes, errors = seperate_errors(result)
+    return errors, successes,k
 
