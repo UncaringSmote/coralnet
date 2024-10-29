@@ -115,7 +115,7 @@ def deploy_coralnet_api(state_machine:StateMachine, files_per_load = 100):
             batches_to_load.append((key,all_batches[int(key)]))
 
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=7) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         future_response = {executor.submit(post_and_get_result,batch_to_load) for batch_to_load in batches_to_load}
         for future in concurrent.futures.as_completed(future_response):
             try:

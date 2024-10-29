@@ -9,7 +9,7 @@ from dropbox.sharing import PathLinkMetadata
 from logdecorator import log_on_start, log_on_end
 from retry import retry
 
-from config import dropbox_token, dropbox_app_key, dropbox_app_secret
+from config import dropbox_token, dropbox_app_key, dropbox_app_secret,rows,cols
 from coralnet_load_model import Point, Attributes, Data, CoralnetLoadModel
 from state import StateMachine
 from utils import generate_save_location
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 dbx = dropbox.Dropbox(app_key=dropbox_app_key,app_secret=dropbox_app_secret,oauth2_refresh_token=dropbox_token)
 dbx.users_get_current_account()
 
-def get_points_array(r_min=450, r_max=2550, c_min=600, c_max=3400, r_divs=5, c_divs=6) -> List[Point]:
+def get_points_array(r_min=450, r_max=2550, c_min=600, c_max=3400, r_divs=6, c_divs=8) -> List[Point]:
     r_space = (r_max - r_min) / r_divs
     c_space = (c_max - c_min) / c_divs
     points = []
@@ -40,7 +40,7 @@ def get_points_array(r_min=450, r_max=2550, c_min=600, c_max=3400, r_divs=5, c_d
 
 
 def generate_data_json(shared_link: PathLinkMetadata) -> Data:
-    points = get_points_array()
+    points = get_points_array(r_divs=rows,c_divs=cols)
     return Data(
         Attributes(
             shared_link.url[:-1] + '1',
@@ -95,7 +95,9 @@ def get_file_list(dropbox_folder: str) -> List[any]:
     # Pulls out first 2000 files from the folder, adds the names to file_list, then creates a cursor
     # signifying its end location in the folder
     file_list_result = dbx.files_list_folder(dropbox_folder)
-    file_list.extend(file_list_result.entries)
+    for entry in file_list_result.entries:
+        if '.' not in entry.path_lower.split("/")[-1].split(".jpg")[0] and entry.size>5000:
+            file_list.append(entry)
     while file_list_result.has_more:  # Loops through to retrieve the rest of the images
         file_list_result = get_more_files(file_list, file_list_result)
     return file_list
@@ -104,7 +106,9 @@ def get_file_list(dropbox_folder: str) -> List[any]:
 @log_on_start(logging.INFO, f"Loading More Files")
 def get_more_files(file_list, file_list_result):
     file_list_result = dbx.files_list_folder_continue(file_list_result.cursor)
-    file_list.extend(file_list_result.entries)
+    for entry in file_list_result.entries:
+        if '.' not in entry.path_lower.split("/")[-1].split(".jpg")[0] and entry.size>5000:
+            file_list.append(entry)
     return file_list_result
 
 
